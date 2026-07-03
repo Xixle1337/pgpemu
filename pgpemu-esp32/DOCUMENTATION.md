@@ -32,6 +32,25 @@ Originally developed for the ESP32-C3, the firmware has been ported to the **Hel
 
 > **Important:** On the classic ESP32, GPIO 6–11 are reserved for the internal SPI flash and must not be used (unlike on the ESP32-C3).
 
+### Case
+
+A 3D-printable case for the Heltec WiFi Kit 32 V2 is provided in
+[`case/`](../case/): the parametric OpenSCAD source
+(`heltec-wifi-kit-32-case.scad`, all dimensions adjustable) and a
+rendered STL (`heltec-wifi-kit-32-case.stl`). Four printed parts
+(bottom / lid / separator / slider); the board clips to the lid via a
+fixed C-rail plus a dovetail slider inserted from the antenna side.
+
+| Part    | Spec |
+|---------|------|
+| Battery | Makerfocus 3000 mAh LiPo |
+| Screws  | 4 × M2.5 countersunk, self-tapping for plastic, 10–12 mm |
+| Print   | PETG recommended, 2 perimeters, 20–30 % infill |
+
+With the 3000 mAh cell and the ~80–130 mA average draw of an active BLE
+session, expect roughly a day of continuous runtime; the long-press deep
+sleep (~10 µA) makes standby negligible.
+
 ---
 
 ## Build & Flash
