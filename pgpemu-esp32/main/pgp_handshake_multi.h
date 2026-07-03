@@ -52,6 +52,8 @@ client_state_t* get_client_state_entry(uint16_t conn_id);
 client_state_t* get_or_create_client_state_entry(uint16_t conn_id);
 // returns NULL when idx has no associated connection
 client_state_t* get_client_state_entry_by_idx(int i);
+// returns the slot index of conn_id in the client state table, -1 when unknown
+int get_client_slot(uint16_t conn_id);
 
 // returns true if conn_id exists and is currently connected
 bool is_connection_active(uint16_t conn_id);

@@ -6,6 +6,7 @@
 #include "esp_log.h"
 #include "log_tags.h"
 #include "mutex_helpers.h"
+#include "oled_display.h"
 #include "pgp_autobutton.h"
 #include "pgp_gap.h"
 
@@ -59,6 +60,16 @@ client_state_t* get_client_state_entry_by_idx(int i) {
     }
 
     return NULL;
+}
+
+int get_client_slot(uint16_t conn_id) {
+    for (int i = 0; i < MAX_CONNECTIONS; i++) {
+        if (conn_id_map[i] == conn_id) {
+            return i;
+        }
+    }
+
+    return -1;
 }
 
 bool is_connection_active(uint16_t conn_id) {
@@ -137,6 +148,9 @@ void connection_start(uint16_t conn_id) {
         mutex_release(active_connections_mutex);
     }
 
+    oled_set_connections(get_active_connections());
+    oled_set_event(conn_id, "Connected");
+
     client_state_t* entry = get_client_state_entry(conn_id);
     if (!entry) {
         ESP_LOGE(HANDSHAKE_TAG, "connection_start: conn_id %d unknown", conn_id);
@@ -186,6 +200,8 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
         mutex_release(active_connections_mutex);
     }
 
+    oled_set_connections(get_active_connections());
+
     client_state_t* entry = get_client_state_entry(conn_id);
     if (!entry) {
         ESP_LOGE(HANDSHAKE_TAG, "connection_stop: conn_id %d unknown", conn_id);
@@ -210,6 +226,7 @@ void connection_stop(uint16_t conn_id, uint8_t reason) {
         pdTICKS_TO_MS(entry->connection_end - entry->connection_start));
 
     purge_button_queue_for_connection(conn_id);
+    oled_set_event(conn_id, "Disconnected");
     delete_client_state_entry(entry);
 }
 
