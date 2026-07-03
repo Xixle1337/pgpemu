@@ -2,7 +2,6 @@
 
 #include "config_secrets.h"
 #include "config_storage.h"
-#include "driver/usb_serial_jtag.h"
 #include "esp_log.h"
 #include "esp_vfs_dev.h"
 #include "freertos/FreeRTOS.h"
@@ -13,6 +12,7 @@
 #include "pgp_gap.h"
 #include "pgp_gatts.h"
 #include "pgp_handshake_multi.h"
+#include "power_monitor.h"
 #include "secrets.h"
 #include "settings.h"
 #include "stats.h"
@@ -23,8 +23,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#define CONSOLE_UART_NUM UART_NUM_0
+
 static int console_read(uint8_t* dst, size_t len, TickType_t to) {
-    return usb_serial_jtag_read_bytes(dst, len, to);
+    return uart_read_bytes(CONSOLE_UART_NUM, dst, len, to);
 }
 
 /* convenience helpers (blocking, timeout 10 s) */
@@ -37,16 +39,23 @@ static void uart_bluetooth_handler();
 static void uart_restart_command();
 
 void init_uart() {
-    usb_serial_jtag_driver_config_t cfg = USB_SERIAL_JTAG_DRIVER_CONFIG_DEFAULT();
-    cfg.tx_buffer_size = 256;
-    cfg.rx_buffer_size = 256;
-    ESP_ERROR_CHECK(usb_serial_jtag_driver_install(&cfg));
+    uart_config_t cfg = {
+        .baud_rate = 115200,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_DEFAULT,
+    };
+    /* buffered TX so log writes from time-sensitive tasks don't block on the FIFO */
+    ESP_ERROR_CHECK(uart_driver_install(CONSOLE_UART_NUM, 256, 256, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(CONSOLE_UART_NUM, &cfg));
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wdeprecated-declarations"
-    esp_vfs_usb_serial_jtag_use_driver();
+    esp_vfs_dev_uart_use_driver(CONSOLE_UART_NUM);
 #pragma GCC diagnostic pop
 
-    xTaskCreate(usb_console_task, "usb_console", 4096, NULL, 12, NULL);
+    xTaskCreate(usb_console_task, "uart_console", 4096, NULL, 12, NULL);
 }
 
 void process_char(uint8_t c) {
@@ -60,6 +69,7 @@ void process_char(uint8_t c) {
             "- L - show LED advertising state\n"
             "- l - cycle through log levels\n"
             "- r - show runtime counter\n"
+            "- p - show battery voltage\n"
             "- t - show FreeRTOS task list\n"
             "- s - show global settings values\n"
             "- S - save settings permanently\n"
@@ -101,6 +111,18 @@ void process_char(uint8_t c) {
             ESP_LOGI(UART_TAG, "success!");
         }
         break;
+    case 'p': {
+        int mv = 0, pct = 0;
+        power_get_status(&mv, &pct);
+#if OLED_ENABLE_DEBUG_PAGE
+        int raw = 0, filt = 0, min = 0, max = 0;
+        power_get_debug(&raw, &filt, &min, &max);
+        ESP_LOGI(UART_TAG, "VBAT: %d mV (%d%%), raw=%d min=%d max=%d", mv, pct, raw, min, max);
+#else
+        ESP_LOGI(UART_TAG, "VBAT: %d mV (%d%%)", mv, pct);
+#endif
+        break;
+    }
     case 'x':
         uart_secrets_handler();
         break;
@@ -137,21 +159,22 @@ void process_char(uint8_t c) {
         uart_restart_command();
         break;
     case 't': {
-        // vTaskList requires a buffer. With CONFIG_BT_ACL_CONNECTIONS=4,
-        // each task entry takes roughly 40-60 bytes, plus header/footer.
-        // 1024 bytes provides plenty of space for the configured max connections.
+        ESP_LOGI(UART_TAG, "Heap free: %lu bytes", esp_get_free_heap_size());
+#if configUSE_TRACE_FACILITY && configUSE_STATS_FORMATTING_FUNCTIONS
         char buf[1024];
         vTaskList(buf);
-
         ESP_LOGI(UART_TAG, "Task List:\nTask Name\tStatus\tPrio\tHWM\tTask\tAffinity\n%s", buf);
-        ESP_LOGI(UART_TAG, "Heap free: %lu bytes", esp_get_free_heap_size());
+#else
+        ESP_LOGW(UART_TAG, "vTaskList not available (enable CONFIG_FREERTOS_USE_TRACE_FACILITY)");
+#endif
         break;
     }
-    case '0':
     case '1':
     case '2':
     case '3':
-        uart_auto_handler(c - '0');
+    case '4':
+        /* user-facing 1-4 maps to conn_id 0-3 */
+        uart_auto_handler(c - '1');
         break;
     default:
         ESP_LOGE(UART_TAG, "unhandled input: %c", c);

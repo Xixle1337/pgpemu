@@ -1,6 +1,7 @@
 #include "stats.h"
 
 #include "esp_log.h"
+#include "esp_timer.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "log_tags.h"
@@ -47,7 +48,34 @@ void increment_caught(uint16_t conn_id) {
     StatsForConn* s = get_conn_entry(conn_id);
     if (s) {
         s->stats.caught++;
+        s->stats.last_caught_us = esp_timer_get_time();
     }
+}
+
+bool get_stats_snapshot(uint16_t conn_id, Stats* out) {
+    *out = (Stats){ 0 };
+    for (size_t i = 0; i < stats_len; i++) {
+        if (stats[i].conn_id == conn_id) {
+            *out = stats[i].stats;
+            return true;
+        }
+    }
+    return false;
+}
+
+void get_stats_totals(uint32_t* caught, uint32_t* fled, uint32_t* spin) {
+    uint32_t c = 0, f = 0, s = 0;
+    for (size_t i = 0; i < stats_len; i++) {
+        c += stats[i].stats.caught;
+        f += stats[i].stats.fled;
+        s += stats[i].stats.spin;
+    }
+    if (caught)
+        *caught = c;
+    if (fled)
+        *fled = f;
+    if (spin)
+        *spin = s;
 }
 
 void increment_fled(uint16_t conn_id) {

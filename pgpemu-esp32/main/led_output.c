@@ -4,9 +4,10 @@
 #include "esp_log.h"
 #include "log_tags.h"
 
-// GPIO 0-5 are strapping pins on ESP32-C3 (boot mode/JTAG control).
-// GPIO 2 specifically is MTDI and cannot be used. GPIO 8 is valid and safe.
-static const int GPIO_LED_ADVERTISING = GPIO_NUM_8;
+// On original ESP32, GPIO 6-11 are reserved for internal SPI flash and
+// GPIO 2 is a strapping pin without an LED on this board.
+// The Heltec WiFi Kit 32 onboard white LED is on GPIO 25.
+static const int GPIO_LED_ADVERTISING = GPIO_NUM_25;
 static bool led_state = false;
 
 static const char* LED_OUTPUT_TAG = "led_output";

@@ -2,7 +2,7 @@
 
 ## Scope
 
-This repository targets **ESP32-C3** firmware built with **ESP-IDF v5.4.1**. The device implements **Bluetooth Low Energy (BLE)** pairing and behavior compatible with **Android** clients. The firmware **emulates the Pokémon GO Plus accessory**. This is non-negotiable: if a change weakens BLE fidelity, timing, or state accuracy, do not merge it.
+This repository targets **ESP32** (Heltec WiFi Kit 32) firmware built with **ESP-IDF v5.4.4**. The device implements **Bluetooth Low Energy (BLE)** pairing and behavior compatible with **Android** clients. The firmware **emulates the Pokémon GO Plus accessory**. This is non-negotiable: if a change weakens BLE fidelity, timing, or state accuracy, do not merge it.
 
 ## Tooling
 

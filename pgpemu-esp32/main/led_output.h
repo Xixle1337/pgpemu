@@ -4,16 +4,15 @@
 #include <stdbool.h>
 
 /**
- * Initialize LED output on GPIO 2 (active-high).
- * Sets GPIO 2 as output and initializes LED to ON (HIGH).
+ * Initialize LED output on the Heltec WiFi Kit 32 onboard LED (GPIO 25, active-high).
+ * Sets the pin as output and initializes the LED to ON (HIGH).
  * Call this during system initialization.
- * NOTE: Changed from GPIO 8 due to potential USB-Serial-JTAG conflict.
  */
 void init_led_output(void);
 
 /**
  * Set LED advertising state.
- * @param enabled true to turn LED ON (GPIO 2 = HIGH), false to turn LED OFF (GPIO 2 = LOW)
+ * @param enabled true to turn LED ON (HIGH), false to turn LED OFF (LOW)
  */
 void set_led_advertising(bool enabled);
 

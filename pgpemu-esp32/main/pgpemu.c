@@ -5,15 +5,20 @@
 #include "esp_system.h"
 #include "led_output.h"
 #include "log_tags.h"
+#include "oled_display.h"
 #include "pgp_autobutton.h"
 #include "pgp_bluetooth.h"
 #include "pgp_gap.h"
+#include "power_monitor.h"
 #include "secrets.h"
 #include "settings.h"
 #include "setup_button.h"
 #include "uart.h"
 
 void app_main() {
+    init_oled_display();
+    power_monitor_init();
+
     // uart menu. put it first because it purges all logs
     init_uart();
 
@@ -78,6 +83,7 @@ void app_main() {
     }
 
     // done
+    oled_set_device_name(PGP_CLONE_NAME);
     ESP_LOGI(PGPEMU_TAG, "Device: %s", PGP_CLONE_NAME);
     ESP_LOGI(PGPEMU_TAG,
         "MAC: %02x:%02x:%02x:%02x:%02x:%02x",
